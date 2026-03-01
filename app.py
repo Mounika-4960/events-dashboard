@@ -7,17 +7,24 @@ import time
 st.set_page_config(layout="wide")
 
 # Load Firebase credentials from Streamlit secrets
-firebase_config = dict(st.secrets["firebase"])
 
 # Fix newline issue
-firebase_config["private_key"] = firebase_config["private_key"].replace("\\n", "\n")
+st.write("App Started ✅")
 
-cred = credentials.Certificate(firebase_config)
+try:
+    firebase_config = st.secrets["firebase"]
+    st.write("Secrets Loaded ✅")
 
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(cred)
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(firebase_config)
+        firebase_admin.initialize_app(cred)
 
-db = firestore.client()
+    st.write("Firebase Initialized ✅")
+ db = firestore.client()
+    st.write("Firestore Connected ✅")
+
+except Exception as e:
+    st.error(f"Error: {e}")
 
 st.title("🎉 Events Dashboard")
 
