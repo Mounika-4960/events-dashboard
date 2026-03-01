@@ -1,29 +1,67 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-import os
+
+st.set_page_config(page_title="Events Dashboard", layout="wide")
 
 st.title("🎉 Birthday & Special Events Dashboard")
-st.write("Welcome to your Cloud Event Dashboard!")
 
-event_type = st.selectbox("Select Event Type", ["Birthday", "Anniversary", "Special Event"])
-name = st.text_input("Enter Name")
-event_date = st.date_input("Select Date")
+# Initialize session storage
+if "events" not in st.session_state:
+    st.session_state.events = []
+
+# Input Section
+st.subheader("➕ Add New Event")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    name = st.text_input("Enter Name")
+    event_type = st.selectbox(
+        "Select Event Type",
+        ["Birthday", "Anniversary", "Wedding", "Achievement", "Other"]
+    )
+
+with col2:
+    event_date = st.date_input("Select Event Date")
+    uploaded_image = st.file_uploader(
+        "Upload Person's Image",
+        type=["jpg", "jpeg", "png"]
+    )
 
 if st.button("Save Event"):
-    data = {"Name": name, "Event": event_type, "Date": event_date}
-    df = pd.DataFrame([data])
+    if name and uploaded_image:
+        event_data = {
+            "name": name,
+            "type": event_type,
+            "date": event_date,
+            "image": uploaded_image
+        }
+        st.session_state.events.append(event_data)
+        st.success("Event Saved Successfully! 🎉")
+    else:
+        st.warning("Please enter name and upload image.")
 
-    if os.path.exists("events.csv"):
-        old_df = pd.read_csv("events.csv")
-        df = pd.concat([old_df, df], ignore_index=True)
+st.divider()
 
-    df.to_csv("events.csv", index=False)
-    st.success("Event Saved Successfully!")
+# Display Section
+st.subheader("📅 All Events")
 
-st.write("----")
-st.subheader("All Events")
+if len(st.session_state.events) == 0:
+    st.info("No events added yet.")
+else:
+    for event in st.session_state.events:
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.image(event["image"], width=150)
+        with col2:
+            st.markdown(f"### {event['name']}")
+            st.write(f"Event: {event['type']}")
+            st.write(f"Date: {event['date']}")
 
-if os.path.exists("events.csv"):
-    df = pd.read_csv("events.csv")
-    st.dataframe(df)
+            # Show celebration if today
+            if event["date"] == date.today():
+                st.success("🎊 Today is the Special Day!")
+                st.balloons()
+
+        st.divider()
