@@ -20,7 +20,7 @@ try:
         firebase_admin.initialize_app(cred)
 
     st.write("Firebase Initialized ✅")
- db = firestore.client()
+    db = firestore.client()
     st.write("Firestore Connected ✅")
 
 except Exception as e:
