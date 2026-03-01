@@ -7,8 +7,12 @@ import time
 st.set_page_config(layout="wide")
 
 # Load Firebase credentials from Streamlit secrets
-cred_dict = json.loads(st.secrets["firebase_credentials"])
-cred = credentials.Certificate(cred_dict)
+firebase_config = dict(st.secrets["firebase"])
+
+# Fix newline issue
+firebase_config["private_key"] = firebase_config["private_key"].replace("\\n", "\n")
+
+cred = credentials.Certificate(firebase_config)
 
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
