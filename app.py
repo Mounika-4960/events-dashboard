@@ -1,67 +1,70 @@
 import streamlit as st
-import pandas as pd
-from datetime import date
+import firebase_admin
+from firebase_admin import credentials, firestore
+import json
+import time
 
-st.set_page_config(page_title="Events Dashboard", layout="wide")
+st.set_page_config(layout="wide")
 
-st.title("🎉 Birthday & Special Events Dashboard")
+# Load Firebase credentials from Streamlit secrets
+cred_dict = json.loads(st.secrets["firebase_credentials"])
+cred = credentials.Certificate(cred_dict)
 
-# Initialize session storage
-if "events" not in st.session_state:
-    st.session_state.events = []
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred)
 
-# Input Section
-st.subheader("➕ Add New Event")
+db = firestore.client()
 
-col1, col2 = st.columns(2)
+st.title("🎉 Events Dashboard")
 
-with col1:
-    name = st.text_input("Enter Name")
-    event_type = st.selectbox(
-        "Select Event Type",
-        ["Birthday", "Anniversary", "Wedding", "Achievement", "Other"]
-    )
+# ---------- ADD EVENT ----------
+st.subheader("Add Event")
 
-with col2:
-    event_date = st.date_input("Select Event Date")
-    uploaded_image = st.file_uploader(
-        "Upload Person's Image",
-        type=["jpg", "jpeg", "png"]
-    )
+name = st.text_input("Name")
+event_type = st.selectbox("Event Type", ["Birthday", "Anniversary", "Festival", "Other"])
+event_date = st.date_input("Event Date")
+image_url = st.text_input("Image URL (paste public image link)")
 
 if st.button("Save Event"):
-    if name and uploaded_image:
-        event_data = {
-            "name": name,
-            "type": event_type,
-            "date": event_date,
-            "image": uploaded_image
-        }
-        st.session_state.events.append(event_data)
-        st.success("Event Saved Successfully! 🎉")
-    else:
-        st.warning("Please enter name and upload image.")
+    db.collection("events").add({
+        "name": name,
+        "type": event_type,
+        "date": str(event_date),
+        "image": image_url
+    })
+    st.success("Event Added to Database!")
 
 st.divider()
 
-# Display Section
-st.subheader("📅 All Events")
+# ---------- DISPLAY EVENTS ----------
+st.subheader("Live Display")
 
-if len(st.session_state.events) == 0:
-    st.info("No events added yet.")
-else:
-    for event in st.session_state.events:
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.image(event["image"], width=150)
-        with col2:
-            st.markdown(f"### {event['name']}")
-            st.write(f"Event: {event['type']}")
-            st.write(f"Date: {event['date']}")
+events_ref = db.collection("events").stream()
+events = [event.to_dict() for event in events_ref]
 
-            # Show celebration if today
-            if event["date"] == date.today():
-                st.success("🎊 Today is the Special Day!")
-                st.balloons()
+placeholder = st.empty()
 
-        st.divider()
+while True:
+    for event in events:
+        with placeholder.container():
+            st.markdown("""
+                <style>
+                .main-box {
+                    background: linear-gradient(135deg,#667eea,#764ba2);
+                    padding: 60px;
+                    border-radius: 20px;
+                    text-align: center;
+                    color: white;
+                }
+                .name {font-size:50px;font-weight:bold;}
+                .event {font-size:35px;}
+                </style>
+            """, unsafe_allow_html=True)
+
+            st.markdown('<div class="main-box">', unsafe_allow_html=True)
+            st.image(event["image"], width=250)
+            st.markdown(f'<div class="name">{event["name"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="event">Happy {event["type"]} 🎉</div>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        time.sleep(5)
