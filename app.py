@@ -1,8 +1,10 @@
+import streamlit as st
 import pandas as pd
 from datetime import date
 import os
 
 st.title("🎉 Birthday & Special Events Dashboard")
+st.write("Welcome to your Cloud Event Dashboard!")
 
 event_type = st.selectbox("Select Event Type", ["Birthday", "Anniversary", "Special Event"])
 name = st.text_input("Enter Name")
